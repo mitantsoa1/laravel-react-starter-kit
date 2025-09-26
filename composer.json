@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "mitantsoa/react-starter-kit",
+    "name": "mitantsoa/laravel-react-starter-kit",
     "type": "project",
     "description": "The skeleton application for the Laravel framework.",
     "keywords": [
