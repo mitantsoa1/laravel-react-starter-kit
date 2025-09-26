@@ -1,12 +1,17 @@
+import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Button } from "@/components/ui/button"
+import axios from "axios"
+import { router } from "@inertiajs/react"
 
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowLeft, Plus } from "lucide-react"
+import AppLayout from "@/layouts/app-layout"
+
 import { toast } from "sonner"
-
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     Form,
     FormControl,
@@ -15,10 +20,6 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
-import axios from "axios"
-import { useState } from "react"
-import { router } from "@inertiajs/react"
-import { ArrowLeft, Plus } from "lucide-react"
 
 // En haut du fichier, après les imports
 type CreateUserFormValues = {
@@ -107,90 +108,92 @@ export default function CreateUser({ user, isEditing }: { user?: any, isEditing?
     }
 
     return (
-        <div className="container mx-auto py-10">
+        <AppLayout>
+            <div className="container mx-auto py-10">
 
-            <Card className="max-w-md mx-auto">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
-                    <CardTitle className="text-2xl font-bold">{isEditing ? "Update user" : "Create new user"}</CardTitle>
-                    <Button
-                        onClick={() => router.visit('/users')}
-                        className="inline-flex items-center gap-2  cursor-pointer"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Name</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="John Doe" {...field} />
-                                        </FormControl>
-                                        <FormMessage>
-                                            {errors?.name && errors?.name[0]}
-                                        </FormMessage>
-                                    </FormItem>
+                <Card className="max-w-md mx-auto">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
+                        <CardTitle className="text-2xl font-bold">{isEditing ? "Update user" : "Create new user"}</CardTitle>
+                        <Button
+                            onClick={() => router.visit('/users')}
+                            className="inline-flex items-center gap-2  cursor-pointer"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Back
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="John Doe" {...field} />
+                                            </FormControl>
+                                            <FormMessage>
+                                                {errors?.name && errors?.name[0]}
+                                            </FormMessage>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Email</FormLabel>
+                                            <FormControl>
+                                                <Input type="email" placeholder="john@example.com" {...field} />
+                                            </FormControl>
+                                            <FormMessage>
+                                                {errors?.email && errors?.email[0]}
+                                            </FormMessage>
+                                        </FormItem>
+                                    )}
+                                />
+                                {!isEditing && (
+                                    <>
+                                        <FormField
+                                            control={form.control}
+                                            name={"password" as keyof FormValues}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Password</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="password" {...field} placeholder="********" />
+                                                    </FormControl>
+                                                    <FormMessage>
+                                                        {errors?.password && errors?.password[0]}
+                                                    </FormMessage>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={"password_confirmation" as keyof FormValues}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Confirm Password</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="password" {...field} placeholder="********" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </>
                                 )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Email</FormLabel>
-                                        <FormControl>
-                                            <Input type="email" placeholder="john@example.com" {...field} />
-                                        </FormControl>
-                                        <FormMessage>
-                                            {errors?.email && errors?.email[0]}
-                                        </FormMessage>
-                                    </FormItem>
-                                )}
-                            />
-                            {!isEditing && (
-                                <>
-                                    <FormField
-                                        control={form.control}
-                                        name={"password" as keyof FormValues}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Password</FormLabel>
-                                                <FormControl>
-                                                    <Input type="password" {...field} placeholder="********" />
-                                                </FormControl>
-                                                <FormMessage>
-                                                    {errors?.password && errors?.password[0]}
-                                                </FormMessage>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name={"password_confirmation" as keyof FormValues}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Confirm Password</FormLabel>
-                                                <FormControl>
-                                                    <Input type="password" {...field} placeholder="********" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </>
-                            )}
-                            {formError && <div className="text-red-500 text-sm">{formError}</div>}
-                            <Button type="submit" className="w-full cursor-pointer">{isEditing ? "Update User" : "Create User"}</Button>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
-        </div>
+                                {formError && <div className="text-red-500 text-sm">{formError}</div>}
+                                <Button type="submit" className="w-full cursor-pointer">{isEditing ? "Update User" : "Create User"}</Button>
+                            </form>
+                        </Form>
+                    </CardContent>
+                </Card>
+            </div>
+        </AppLayout>
     )
 }

@@ -13,7 +13,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::all();
+        $users = User::with('roles')->get();
         return Inertia::render('users/index', ['users' => $users]);
     }
 
@@ -47,6 +47,7 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+        $user->assignRole('ROLE_USER');
 
         return response()->json(['user' => $user, 'message' => 'User created successfully', 'status' => 'success'], 201);
     }

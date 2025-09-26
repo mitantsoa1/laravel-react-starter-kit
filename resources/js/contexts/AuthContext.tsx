@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     const can = (permission: string, resource?: any): boolean => {
         // Admin a tous les droits
-        if (user?.role === 'admin') return true;
+        if (user?.role === 'ROLE_ADMIN') return true;
 
         // Vérification des permissions spécifiques
         if (permissions.includes(permission)) return true;
