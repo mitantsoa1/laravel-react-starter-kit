@@ -1,25 +1,11 @@
-import { useEffect, useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { useState } from "react"
 import * as z from "zod"
 import { router, useForm } from "@inertiajs/react"
 import { ArrowLeft, Plus, ChevronDown } from "lucide-react"
 import AppLayout from "@/layouts/app-layout"
-import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form"
-import { useAdmin } from "@/hooks/use-admin"
-import { useFlashMessages } from "@/hooks/use-flash-messages"
-import Swal from "sweetalert2"
-import { User } from "@/types"
 import { Label } from "@/components/ui/label"
 
 // En haut du fichier, après les imports
@@ -47,7 +33,7 @@ const getFormSchema = (isEditing: boolean) => {
         email: z.email({
             message: "Please enter a valid email address.",
         }),
-        role_id: z.string().min(1, {
+        role_id: z.number().min(1, {
             message: "Please select a role.",
         }),
     };
@@ -72,6 +58,7 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
     const [errors, setErrors] = useState<any>(null);
     const [formError, setFormError] = useState<string | null>(null);
     const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+    const [zodErrors, setZodErrors] = useState<Record<string, string>>({});
     const formSchema = getFormSchema(!!isEditing);
 
     const { data, setData, post, put, processing, errors: formErrors } = useForm<CreateUserFormValues>({
@@ -85,10 +72,45 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
         }),
     });
 
+    // Fonction de validation Zod
+    const validateForm = (): boolean => {
+        const result = formSchema.safeParse(data);
+
+        if (!result.success) {
+            const errors: Record<string, string> = {};
+            result.error.issues.forEach((issue) => {
+                const fieldName = issue.path[0] as string;
+                errors[fieldName] = issue.message;
+            });
+            setZodErrors(errors);
+            return false;
+        }
+
+        setZodErrors({});
+        return true;
+    };
+
+    // Effacer les erreurs Zod quand l'utilisateur modifie un champ
+    const handleInputChange = (field: keyof CreateUserFormValues, value: string) => {
+        setData(field, value);
+        if (zodErrors[field]) {
+            setZodErrors(prev => ({
+                ...prev,
+                [field]: ""
+            }));
+        }
+    };
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        setFormError(null);
+
+        // Valider avec Zod avant soumission
+        if (!validateForm()) {
+            return;
+        }
+
         if (isEditing && user) {
-            // Update existing user
             put(`/users/${user.id}`);
         } else {
             post('/users');
@@ -98,6 +120,13 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
     const handleRoleSelect = (roleId: string) => {
         setData('role_id', roleId);
         setIsRoleDropdownOpen(false);
+        // Effacer l'erreur du rôle si elle existe
+        if (zodErrors.role_id) {
+            setZodErrors(prev => ({
+                ...prev,
+                role_id: ""
+            }));
+        }
     };
 
     const getSelectedRoleName = () => {
@@ -131,11 +160,14 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
                                     id="name"
                                     name="name"
                                     value={data.name}
-                                    onChange={e => setData('name', e.target.value)}
+                                    onChange={e => handleInputChange('name', e.target.value)}
                                     required
-                                    className="w-full"
+                                    className={`w-full ${zodErrors.name ? 'border-red-500 focus:border-red-500' : ''}`}
                                 />
-                                {errors?.name && <div className="text-red-500 text-sm mt-1">{errors.name}</div>}
+                                {/* Affichage des erreurs Zod */}
+                                {zodErrors.name && <div className="text-red-500 text-sm mt-1">{zodErrors.name}</div>}
+                                {/* Affichage des erreurs serveur existantes */}
+                                {errors?.name && !zodErrors.name && <div className="text-red-500 text-sm mt-1">{errors.name}</div>}
                             </div>
 
                             <div>
@@ -147,11 +179,14 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
                                     id="email"
                                     name="email"
                                     value={data.email}
-                                    onChange={e => setData('email', e.target.value)}
+                                    onChange={e => handleInputChange('email', e.target.value)}
                                     required
-                                    className="w-full"
+                                    className={`w-full ${zodErrors.email ? 'border-red-500 focus:border-red-500' : ''}`}
                                 />
-                                {errors?.email && <div className="text-red-500 text-sm mt-1">{errors.email}</div>}
+                                {/* Affichage des erreurs Zod */}
+                                {zodErrors.email && <div className="text-red-500 text-sm mt-1">{zodErrors.email}</div>}
+                                {/* Affichage des erreurs serveur existantes */}
+                                {errors?.email && !zodErrors.email && <div className="text-red-500 text-sm mt-1">{errors.email}</div>}
                             </div>
 
                             {/* Sélecteur de rôle */}
@@ -164,7 +199,8 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
                                     <button
                                         type="button"
                                         onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                                        className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        className={`w-full flex items-center justify-between px-3 py-2 border rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${zodErrors.role_id ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                     >
                                         <span className={`${!data.role_id ? 'text-gray-500' : 'text-gray-900'}`}>
                                             {getSelectedRoleName()}
@@ -199,7 +235,12 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
                                     )}
                                 </div>
 
-                                {errors?.role_id && (
+                                {/* Affichage des erreurs Zod */}
+                                {zodErrors.role_id && (
+                                    <div className="text-red-500 text-sm mt-1">{zodErrors.role_id}</div>
+                                )}
+                                {/* Affichage des erreurs serveur existantes */}
+                                {errors?.role_id && !zodErrors.role_id && (
                                     <div className="text-red-500 text-sm mt-1">{errors.role_id}</div>
                                 )}
                             </div>
@@ -215,11 +256,14 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
                                             id="password"
                                             name="password"
                                             value={data.password}
-                                            onChange={e => setData('password', e.target.value)}
+                                            onChange={e => handleInputChange('password', e.target.value)}
                                             required
-                                            className="w-full"
+                                            className={`w-full ${zodErrors.password ? 'border-red-500 focus:border-red-500' : ''}`}
                                         />
-                                        {errors?.password && <div className="text-red-500 text-sm mt-1">{errors.password}</div>}
+                                        {/* Affichage des erreurs Zod */}
+                                        {zodErrors.password && <div className="text-red-500 text-sm mt-1">{zodErrors.password}</div>}
+                                        {/* Affichage des erreurs serveur existantes */}
+                                        {errors?.password && !zodErrors.password && <div className="text-red-500 text-sm mt-1">{errors.password}</div>}
                                     </div>
 
                                     <div>
@@ -231,11 +275,16 @@ export default function CreateUser({ user, isEditing, roles }: { user?: any, isE
                                             id="password_confirmation"
                                             name={"password_confirmation" as keyof FormValues}
                                             value={data.password_confirmation}
-                                            onChange={e => setData('password_confirmation', e.target.value)}
+                                            onChange={e => handleInputChange('password_confirmation', e.target.value)}
                                             required
-                                            className="w-full"
+                                            className={`w-full ${zodErrors.password_confirmation ? 'border-red-500 focus:border-red-500' : ''}`}
                                         />
-                                        {errors?.password_confirmation && (
+                                        {/* Affichage des erreurs Zod */}
+                                        {zodErrors.password_confirmation && (
+                                            <div className="text-red-500 text-sm mt-1">{zodErrors.password_confirmation}</div>
+                                        )}
+                                        {/* Affichage des erreurs serveur existantes */}
+                                        {errors?.password_confirmation && !zodErrors.password_confirmation && (
                                             <div className="text-red-500 text-sm mt-1">{errors.password_confirmation}</div>
                                         )}
                                     </div>

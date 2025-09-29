@@ -6,25 +6,22 @@ export const useApi = () => {
 
     const apiRequest = useCallback(
         async (url: string, options: { headers?: Record<string, string> } = {}) => {
-            try {
-                const response = await fetch(url, {
-                    ...options,
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`,
-                        'Content-Type': 'application/json',
-                        ...options.headers,
-                    },
-                });
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers,
+                },
+            });
 
-                if (response.status === 403) {
-                    router.visit('/unauthorized');
-                    throw new Error('Accès refusé');
-                }
-
-                return await response.json();
-            } catch (error) {
-                throw error;
+            if (response.status === 403) {
+                router.visit('/unauthorized');
+                throw new Error('Accès refusé');
             }
+
+            return await response.json();
+
         },
         [],
     );

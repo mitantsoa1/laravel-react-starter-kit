@@ -10,14 +10,14 @@ import { Label } from "@/components/ui/label"
 
 type CreateRoleFormValues = {
     name: string;
-    permissions?: string[];
+    permissions?: number[]; // Changé de string[] à number[]
 }
 
 const formSchema = z.object({
-    name: z.string().min(2, {
+    name: z.string().min(3, {
         message: "Role name must be at least 2 characters.",
     }),
-    permissions: z.array(z.string()).optional(),
+    permissions: z.array(z.number()).optional(), // Changé de z.string() à z.number()
 });
 
 export default function CreateRole({ role, isEditing, permissions, allPermissions }: {
@@ -28,8 +28,9 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
 }) {
     const [errors, setErrors] = useState<any>(null);
     const [formError, setFormError] = useState<string | null>(null);
-    const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+    const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]); // Changé de string[] à number[]
     const [searchTerm, setSearchTerm] = useState("");
+    const [zodErrors, setZodErrors] = useState<Record<string, string>>({});
 
     const { data, setData, post, put, processing, errors: formErrors } = useForm<CreateRoleFormValues>({
         name: role?.name || "",
@@ -39,7 +40,12 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
     // Initialiser les permissions sélectionnées à partir du rôle
     useEffect(() => {
         if (role?.permissions) {
-            setSelectedPermissions(role.permissions.map((p: any) => p.id || p));
+            const permissionIds = role.permissions.map((p: any) => {
+                // Convertir en number si c'est une string
+                const id = p.id || p;
+                return typeof id === 'string' ? parseInt(id, 10) : id;
+            });
+            setSelectedPermissions(permissionIds);
         }
     }, [role]);
 
@@ -57,30 +63,116 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
         permission.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handlePermissionToggle = (permissionId: string) => {
+    // Fonction de validation Zod améliorée
+    const validateForm = (): boolean => {
+        console.log("Data à valider:", data);
+        console.log("Type des permissions:", typeof data.permissions?.[0]);
+
+        const result = formSchema.safeParse(data);
+
+        if (!result.success) {
+            console.log("Erreurs Zod:", result.error.issues);
+            const errors: Record<string, string> = {};
+            result.error.issues.forEach((issue) => {
+                const fieldName = issue.path[0] as string;
+                // Concaténer les messages si plusieurs erreurs sur le même champ
+                errors[fieldName] = (errors[fieldName] ? errors[fieldName] + ', ' : '') + issue.message;
+            });
+            setZodErrors(errors);
+            return false;
+        }
+
+        setZodErrors({});
+        return true;
+    };
+
+    // Effacer les erreurs Zod quand l'utilisateur modifie un champ
+    const handleInputChange = (field: keyof CreateRoleFormValues, value: string) => {
+        setData(field, value);
+        if (zodErrors[field]) {
+            setZodErrors(prev => ({
+                ...prev,
+                [field]: ""
+            }));
+        }
+    };
+
+    const handlePermissionToggle = (permissionId: number) => { // Changé de string à number
         const newSelectedPermissions = selectedPermissions.includes(permissionId)
             ? selectedPermissions.filter(id => id !== permissionId)
             : [...selectedPermissions, permissionId];
 
         setSelectedPermissions(newSelectedPermissions);
+
+        // Effacer l'erreur des permissions si elle existe
+        if (zodErrors.permissions) {
+            setZodErrors(prev => ({
+                ...prev,
+                permissions: ""
+            }));
+        }
     };
 
-    const removePermission = (permissionId: string) => {
+    const removePermission = (permissionId: number) => { // Changé de string à number
         const newSelectedPermissions = selectedPermissions.filter(id => id !== permissionId);
         setSelectedPermissions(newSelectedPermissions);
+
+        // Effacer l'erreur des permissions si elle existe
+        if (zodErrors.permissions) {
+            setZodErrors(prev => ({
+                ...prev,
+                permissions: ""
+            }));
+        }
     };
 
     const selectAllPermissions = () => {
-        const allPermissionIds = availablePermissions.map(p => p.id);
+        const allPermissionIds = availablePermissions.map(p => {
+            // S'assurer que les IDs sont des numbers
+            const id = p.id;
+            return typeof id === 'string' ? parseInt(id, 10) : id;
+        });
         setSelectedPermissions(allPermissionIds);
+
+        // Effacer l'erreur des permissions si elle existe
+        if (zodErrors.permissions) {
+            setZodErrors(prev => ({
+                ...prev,
+                permissions: ""
+            }));
+        }
     };
 
     const clearAllPermissions = () => {
         setSelectedPermissions([]);
+
+        // Effacer l'erreur des permissions si elle existe
+        if (zodErrors.permissions) {
+            setZodErrors(prev => ({
+                ...prev,
+                permissions: ""
+            }));
+        }
     };
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        setFormError(null);
+
+        console.log("=== AVANT VALIDATION ===");
+        console.log("selectedPermissions:", selectedPermissions);
+        console.log("data.permissions:", data.permissions);
+        console.log("Type de selectedPermissions[0]:", typeof selectedPermissions[0]);
+        console.log("Type de data.permissions[0]:", typeof data.permissions?.[0]);
+
+        // Valider avec Zod avant soumission
+        if (!validateForm()) {
+            console.log("=== VALIDATION ÉCHOUÉE ===");
+            console.log("zodErrors:", zodErrors);
+            return;
+        }
+
+        console.log("=== VALIDATION RÉUSSIE ===");
 
         if (isEditing && role) {
             put(`/roles/${role.id}`);
@@ -90,14 +182,22 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
     }
 
     // Obtenir le nom d'une permission par son ID
-    const getPermissionName = (permissionId: string) => {
-        const permission = availablePermissions.find(p => p.id === permissionId);
-        return permission?.name || permissionId;
+    const getPermissionName = (permissionId: number) => { // Changé de string à number
+        const permission = availablePermissions.find(p => {
+            const pId = p.id;
+            const compareId = typeof pId === 'string' ? parseInt(pId, 10) : pId;
+            return compareId === permissionId;
+        });
+        return permission?.name || permissionId.toString();
     };
 
     // Obtenir la description d'une permission par son ID
-    const getPermissionDescription = (permissionId: string) => {
-        const permission = availablePermissions.find(p => p.id === permissionId);
+    const getPermissionDescription = (permissionId: number) => { // Changé de string à number
+        const permission = availablePermissions.find(p => {
+            const pId = p.id;
+            const compareId = typeof pId === 'string' ? parseInt(pId, 10) : pId;
+            return compareId === permissionId;
+        });
         return permission?.description || "";
     };
 
@@ -121,18 +221,29 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
                                 <Label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Role Name
+                                    Role Name *
                                 </Label>
                                 <Input
                                     type="text"
                                     id="name"
                                     name="name"
                                     value={data.name}
-                                    onChange={e => setData('name', e.target.value)}
+                                    onChange={e => handleInputChange('name', e.target.value)}
                                     required
-                                    className="w-full"
+                                    className={`w-full ${zodErrors.name ? 'border-red-500 focus:border-red-500' : ''}`}
+                                    placeholder="Enter role name (min 2 characters)"
                                 />
-                                {errors?.name && <div className="text-red-500 text-sm mt-1">{errors.name}</div>}
+                                {/* Affichage des erreurs Zod */}
+                                {zodErrors.name && (
+                                    <div className="text-red-500 text-sm mt-1 flex items-start gap-1">
+                                        <span>•</span>
+                                        <span>{zodErrors.name}</span>
+                                    </div>
+                                )}
+                                {/* Affichage des erreurs serveur existantes */}
+                                {errors?.name && !zodErrors.name && (
+                                    <div className="text-red-500 text-sm mt-1">{errors.name}</div>
+                                )}
                             </div>
 
                             {/* Section des permissions */}
@@ -170,7 +281,7 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
 
                                 {/* Permissions sélectionnées */}
                                 {selectedPermissions.length > 0 && (
-                                    <div className="border rounded-lg p-4 bg-gray-50">
+                                    <div className={`border rounded-lg p-4 ${zodErrors.permissions ? 'border-red-200 bg-red-50' : 'bg-gray-50'}`}>
                                         <Label className="text-sm font-medium text-gray-700 mb-3 block">
                                             Selected Permissions ({selectedPermissions.length})
                                         </Label>
@@ -222,46 +333,65 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
                                         </div>
                                     ) : (
                                         <div className="divide-y">
-                                            {filteredPermissions.map((permission) => (
-                                                <label
-                                                    key={permission.id}
-                                                    className="flex items-start gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                                                >
-                                                    <div className="flex items-center h-5 mt-0.5">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedPermissions.includes(permission.id)}
-                                                            onChange={() => handlePermissionToggle(permission.id)}
-                                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                        />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-medium text-gray-900">
-                                                                {permission.name}
-                                                            </span>
-                                                            {selectedPermissions.includes(permission.id) && (
-                                                                <Check className="h-3 w-3 text-green-500" />
+                                            {filteredPermissions.map((permission) => {
+                                                // Convertir l'ID en number pour la comparaison
+                                                const permissionId = typeof permission.id === 'string'
+                                                    ? parseInt(permission.id, 10)
+                                                    : permission.id;
+
+                                                return (
+                                                    <label
+                                                        key={permissionId}
+                                                        className="flex items-start gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                                                    >
+                                                        <div className="flex items-center h-5 mt-0.5">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedPermissions.includes(permissionId)}
+                                                                onChange={() => handlePermissionToggle(permissionId)}
+                                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                            />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-medium text-gray-900">
+                                                                    {permission.name}
+                                                                </span>
+                                                                {selectedPermissions.includes(permissionId) && (
+                                                                    <Check className="h-3 w-3 text-green-500" />
+                                                                )}
+                                                            </div>
+                                                            {permission.description && (
+                                                                <p className="text-xs text-gray-500 mt-1">
+                                                                    {permission.description}
+                                                                </p>
                                                             )}
                                                         </div>
-                                                        {permission.description && (
-                                                            <p className="text-xs text-gray-500 mt-1">
-                                                                {permission.description}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </label>
-                                            ))}
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
 
-                                {errors?.permissions && (
-                                    <div className="text-red-500 text-sm">{errors.permissions}</div>
+                                {/* Affichage des erreurs Zod pour les permissions */}
+                                {zodErrors.permissions && (
+                                    <div className="text-red-500 text-sm mt-2 flex items-start gap-1">
+                                        <span>•</span>
+                                        <span>{zodErrors.permissions}</span>
+                                    </div>
+                                )}
+                                {/* Affichage des erreurs serveur existantes pour les permissions */}
+                                {errors?.permissions && !zodErrors.permissions && (
+                                    <div className="text-red-500 text-sm mt-2">{errors.permissions}</div>
                                 )}
                             </div>
 
-                            {formError && <div className="text-red-500 text-sm">{formError}</div>}
+                            {formError && (
+                                <div className="text-red-500 text-sm bg-red-50 p-3 rounded-md">
+                                    {formError}
+                                </div>
+                            )}
 
                             <div className="flex gap-3">
                                 <Button
