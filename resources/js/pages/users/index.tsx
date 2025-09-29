@@ -9,19 +9,12 @@ import {
 import { DataTable } from "./data-table"
 import { router, usePage } from '@inertiajs/react'
 import Swal from 'sweetalert2'
-import axios from 'axios'
 import AppLayout from '@/layouts/app-layout'
 import { Role, UserWithRelations } from '@/types'
-import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { useAdmin } from '@/hooks/use-admin'
+import { useAlert } from '@/hooks/use-alert'
 
-interface PageProps {
-    auth: {
-        user: UserWithRelations | null
-    };
-    [key: string]: any;
-}
 
 interface UsersListProps {
     users: UserWithRelations[]
@@ -29,6 +22,8 @@ interface UsersListProps {
 
 const UsersList: React.FC<UsersListProps> = ({ users }) => {
     const { isAdmin, currentUser: user } = useAdmin();
+
+    useAlert()
 
     const handleEdit = (id: number) => {
         router.get(`/users/${id}/edit`);
@@ -45,12 +40,8 @@ const UsersList: React.FC<UsersListProps> = ({ users }) => {
         }).then(async (result) => {
             /* Read more about isConfirmed, isDenied below */
             if (result.isConfirmed) {
-                const response = await axios.delete(`/users/${id}`);
-                if (response && response.data.status === 'success') {
-                    Swal.fire("Deleted!", "", "success");
-                } else {
-                    Swal.fire("Error!", "", "error");
-                }
+                router.delete(`/users/${id}`);
+
             } else if (result.isDenied) {
                 Swal.fire("Changes are not saved", "", "info");
             }
@@ -72,16 +63,37 @@ const UsersList: React.FC<UsersListProps> = ({ users }) => {
             header: "Roles",
             cell: (value: any) => {
                 return (
-                    <div className="flex flex-wrap justify-center gap-1">
-                        {value?.map((role: Role) => (
-                            <Badge
-                                key={role.id}
-                                variant="outline"
-                                className="capitalize border-green-500 rounded-lg p-1"
-                            >
-                                {role.name}
-                            </Badge>
-                        ))}
+                    <div className="flex flex-wrap gap-2">
+                        {value?.map((role: Role) => {
+                            const roleColors = {
+                                admin: "bg-red-100 text-red-800 border-red-200",
+                                manager: "bg-blue-100 text-blue-800 border-blue-200",
+                                user: "bg-green-100 text-green-800 border-green-200",
+                                editor: "bg-purple-100 text-purple-800 border-purple-200",
+                                viewer: "bg-gray-100 text-gray-800 border-gray-200"
+                            };
+
+                            const roleIcons = {
+                                SUPER_ADMIN: "👑",
+                                ROLE_ADMIN: "💼",
+                                ROLE_USER: "👤",
+                                editor: "✏️",
+                                viewer: "👀"
+                            };
+
+                            const colorClass = roleColors[role.name as keyof typeof roleColors] || "bg-gray-100 text-gray-800 border-gray-200";
+                            const icon = roleIcons[role.name as keyof typeof roleIcons] || "🔹";
+
+                            return (
+                                <div
+                                    key={role.id}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium ${colorClass}`}
+                                >
+                                    <span className="text-xs">{icon}</span>
+                                    <span className="capitalize">{role.name}</span>
+                                </div>
+                            );
+                        })}
                     </div>
                 )
             },

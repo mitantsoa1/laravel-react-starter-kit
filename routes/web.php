@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\User\PermissionController;
+use App\Http\Controllers\User\RolePermissionController;
 use App\Http\Controllers\User\UserController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +30,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'update' => 'users.update',
         'destroy' => 'users.destroy',
     ]);
+    Route::resource('roles', RolePermissionController::class)->names(
+        [
+            'index' => 'roles.index',
+            'create' => 'roles.create',
+            'store' => 'roles.store',
+            'edit' => 'roles.edit',
+            'update' => 'roles.update',
+            'destroy' => 'roles.destroy',
+        ]
+    );
+    Route::resource('permissions', PermissionController::class)->names(
+        [
+            'index' => 'permissions.index',
+            'create' => 'permissions.create',
+            'store' => 'permissions.store',
+            'edit' => 'permissions.edit',
+            'update' => 'permissions.update',
+            'destroy' => 'permissions.destroy',
+        ]
+    );
 });
 
 require __DIR__ . '/settings.php';

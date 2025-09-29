@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -17,16 +18,20 @@ class UserController extends Controller
         return Inertia::render('users/index', ['users' => $users]);
     }
 
-    public function create(Request $request)
+    public function create()
     {
-        return Inertia::render('users/create');
-    }
-    public function edit($id)
-    {
-        $user = User::findOrFail($id);
         return Inertia::render('users/create', [
-            'user' => $user,
-            'isEditing' => true
+            'isEditing' => false,
+            'roles' => Role::all()
+        ]);
+    }
+
+    public function edit(User $user)
+    {
+        return Inertia::render('users/create', [
+            'user' => $user->load('roles'),
+            'isEditing' => true,
+            'roles' => Role::all()
         ]);
     }
 
@@ -47,9 +52,12 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
-        $user->assignRole('ROLE_USER');
+        $role = Role::findById($request->role_id);
+        $user->assignRole($role);
 
-        return response()->json(['user' => $user, 'message' => 'User created successfully', 'status' => 'success'], 201);
+        // return response()->json(['user' => $user, 'message' => 'User created successfully', 'status' => 'success'], 201);
+        return redirect()->route('users.index')
+            ->with('success', 'User created successfully');
     }
 
     public function show($id)
@@ -83,8 +91,10 @@ class UserController extends Controller
             'email' => $request->email ?? $user->email,
             'password' => $request->password ? Hash::make($request->password) : $user->password,
         ]);
-
-        return response()->json(['user' => $user, 'message' => 'User updated successfully', 'status' => 'success']);
+        $role = Role::findById($request->role_id);
+        $user->assignRole($role);
+        return redirect()->route('users.index')
+            ->with('success', 'User updated successfully');
     }
 
     public function destroy($id)
@@ -95,6 +105,8 @@ class UserController extends Controller
         }
 
         $user->delete();
-        return response()->json(['message' => 'User deleted successfully', 'status' => 'success']);
+        return redirect()->route('users.index')
+            ->with('success', 'User deleted successfully');
+        // return response()->json(['message' => 'User deleted successfully', 'status' => 'success']);
     }
 }

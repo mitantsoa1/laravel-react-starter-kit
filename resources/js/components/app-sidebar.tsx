@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Users } from 'lucide-react';
+import { BookOpen, Folder, KeyRound, LayoutGrid, Shield, ShieldAlertIcon, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -26,6 +26,16 @@ const mainNavItems: NavItem[] = [
         title: 'Users',
         href: "/users",
         icon: Users,
+    },
+    {
+        title: 'Permissions',
+        href: "/permissions",
+        icon: KeyRound,
+    },
+    {
+        title: 'Roles',
+        href: "/roles",
+        icon: ShieldAlertIcon,
     },
 ];
 
