@@ -22,15 +22,16 @@ class TwoFactorAuthenticationTest extends TestCase
             'confirm' => true,
             'confirmPassword' => true,
         ]);
-
+        /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('two-factor.show'))
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/two-factor')
-                ->where('twoFactorEnabled', false)
+            ->assertInertia(
+                fn(Assert $page) => $page
+                    ->component('settings/two-factor')
+                    ->where('twoFactorEnabled', false)
             );
     }
 
@@ -39,7 +40,7 @@ class TwoFactorAuthenticationTest extends TestCase
         if (! Features::canManageTwoFactorAuthentication()) {
             $this->markTestSkipped('Two-factor authentication is not enabled.');
         }
-
+        /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
         Features::twoFactorAuthentication([
@@ -58,7 +59,7 @@ class TwoFactorAuthenticationTest extends TestCase
         if (! Features::canManageTwoFactorAuthentication()) {
             $this->markTestSkipped('Two-factor authentication is not enabled.');
         }
-
+        /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
         Features::twoFactorAuthentication([
@@ -69,8 +70,9 @@ class TwoFactorAuthenticationTest extends TestCase
         $this->actingAs($user)
             ->get(route('two-factor.show'))
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/two-factor')
+            ->assertInertia(
+                fn(Assert $page) => $page
+                    ->component('settings/two-factor')
             );
     }
 
@@ -83,7 +85,7 @@ class TwoFactorAuthenticationTest extends TestCase
         config(['fortify.features' => []]);
 
         $user = User::factory()->create();
-
+        /** @var \App\Models\User $user */
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('two-factor.show'))
