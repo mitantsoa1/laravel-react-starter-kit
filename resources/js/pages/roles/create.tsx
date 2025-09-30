@@ -65,8 +65,6 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
 
     // Fonction de validation Zod améliorée
     const validateForm = (): boolean => {
-        console.log("Data à valider:", data);
-        console.log("Type des permissions:", typeof data.permissions?.[0]);
 
         const result = formSchema.safeParse(data);
 
@@ -159,20 +157,12 @@ export default function CreateRole({ role, isEditing, permissions, allPermission
         e.preventDefault();
         setFormError(null);
 
-        console.log("=== AVANT VALIDATION ===");
-        console.log("selectedPermissions:", selectedPermissions);
-        console.log("data.permissions:", data.permissions);
-        console.log("Type de selectedPermissions[0]:", typeof selectedPermissions[0]);
-        console.log("Type de data.permissions[0]:", typeof data.permissions?.[0]);
-
         // Valider avec Zod avant soumission
         if (!validateForm()) {
-            console.log("=== VALIDATION ÉCHOUÉE ===");
             console.log("zodErrors:", zodErrors);
             return;
         }
 
-        console.log("=== VALIDATION RÉUSSIE ===");
 
         if (isEditing && role) {
             put(`/roles/${role.id}`);

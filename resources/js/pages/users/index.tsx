@@ -6,14 +6,15 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { DataTable } from "./data-table"
 import { router, usePage } from '@inertiajs/react'
 import Swal from 'sweetalert2'
 import AppLayout from '@/layouts/app-layout'
-import { Role, UserWithRelations } from '@/types'
+import { Role, User, UserWithRelations } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { useAdmin } from '@/hooks/use-admin'
 import { useAlert } from '@/hooks/use-alert'
+import { DataTable } from '@/components/data-table'
+import { ColumnDef } from '@tanstack/react-table'
 
 
 interface UsersListProps {
@@ -49,7 +50,7 @@ const UsersList: React.FC<UsersListProps> = ({ users }) => {
         });
     }
 
-    const columns = [
+    const columns: ColumnDef<User>[] = [
         {
             accessorKey: "name",
             header: "Name",
@@ -61,10 +62,12 @@ const UsersList: React.FC<UsersListProps> = ({ users }) => {
         {
             accessorKey: "roles",
             header: "Roles",
-            cell: (value: any) => {
+            cell: (props) => {
+                const roles = props.getValue() as Role[];
+
                 return (
                     <div className="flex flex-wrap gap-2">
-                        {value?.map((role: Role) => {
+                        {roles?.map((role: Role) => {
                             const roleColors = {
                                 admin: "bg-red-100 text-red-800 border-red-200",
                                 manager: "bg-blue-100 text-blue-800 border-blue-200",
@@ -101,47 +104,49 @@ const UsersList: React.FC<UsersListProps> = ({ users }) => {
         {
             accessorKey: "created_at",
             header: "Created At",
-            cell: (value: string) => new Date(value).toLocaleDateString(),
+            cell: (props) => {
+                const dateValue = props.getValue() as string;
+                return new Date(dateValue).toLocaleDateString();
+            },
         },
         {
             accessorKey: "id",
             header: "Actions",
-            cell: (value: number) => (
-                <div className="flex justify-center gap-2">
-                    {(isAdmin || user?.id == value) && (
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="border-blue-500 text-blue-500 hover:bg-blue-600 hover:text-white cursor-pointer"
-                            onClick={() => {
-                                handleEdit(value)
-                            }
-                            }
-                        >
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    )}
-                    {isAdmin && (
+            cell: (props) => {
+                const userId = props.getValue() as number;
+                const currentUser = props.row.original; // Accès à l'objet User complet
 
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="border-red-500 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer"
-                            onClick={() => {
-                                handleDelete(value)
-                            }}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    )}
-                </div>
-            ),
+                return (
+                    <div className="flex justify-center gap-2">
+                        {(isAdmin || user?.id === userId) && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="border-blue-500 text-blue-500 hover:bg-blue-600 hover:text-white cursor-pointer"
+                                onClick={() => handleEdit(userId)}
+                            >
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                        )}
+                        {isAdmin && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="border-red-500 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer"
+                                onClick={() => handleDelete(userId)}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                );
+            },
         },
-    ]
+    ];
 
     return (
         <AppLayout>
-            <div className="container mx-auto py-8">
+            <div className="container mx-auto py-8 px-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
                         <CardTitle className="text-2xl font-bold">Users List</CardTitle>

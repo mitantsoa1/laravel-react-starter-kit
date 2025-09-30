@@ -1,9 +1,8 @@
 <?php
 
 use App\Http\Controllers\User\PermissionController;
-use App\Http\Controllers\User\RolePermissionController;
+use App\Http\Controllers\User\RoleController;
 use App\Http\Controllers\User\UserController;
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -30,7 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'update' => 'users.update',
         'destroy' => 'users.destroy',
     ]);
-    Route::resource('roles', RolePermissionController::class)->names(
+    Route::resource('roles', RoleController::class)->names(
         [
             'index' => 'roles.index',
             'create' => 'roles.create',

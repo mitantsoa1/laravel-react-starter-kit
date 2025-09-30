@@ -8,7 +8,7 @@ use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class RolePermissionController extends Controller
+class RoleController extends Controller
 {
 
 

@@ -57,7 +57,6 @@ export default function CreatePermission({ permission, isEditing }: { permission
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         setFormError(null)
-
         // Valider le formulaire avec Zod
         if (!validateForm()) {
             return
@@ -65,9 +64,9 @@ export default function CreatePermission({ permission, isEditing }: { permission
 
         try {
             if (isEditing && permission) {
-                router.put(`/permissions/${permission.id}`)
+                put(`/permissions/${permission.id}`)
             } else {
-                router.post('/permissions')
+                post('/permissions')
             }
         } catch (error) {
             setFormError("Une erreur est survenue lors de l'envoi du formulaire.")
